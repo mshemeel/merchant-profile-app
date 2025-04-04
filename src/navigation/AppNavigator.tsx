@@ -146,6 +146,11 @@ const AppNavigator = () => {
               options={{ title: 'TID Details' }}
             />
             <Stack.Screen 
+              name="TransactionList" 
+              component={TransactionListScreen} 
+              options={{ title: 'Transactions' }}
+            />
+            <Stack.Screen 
               name="TransactionDetails" 
               component={TransactionDetailsScreen} 
               options={{ title: 'Transaction Details' }}
