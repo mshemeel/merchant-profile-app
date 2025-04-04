@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { StyleSheet, ImageBackground, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, ImageBackground, KeyboardAvoidingView, Platform, Animated } from 'react-native';
 import {
   Box,
   VStack,
+  HStack,
   Heading,
   Text,
   Input,
@@ -15,11 +16,10 @@ import {
   Spinner,
   Pressable,
   Icon,
-  Image as GImage,
 } from '@gluestack-ui/themed';
 import { useAuth } from '../hooks/useAuth';
 import { NavigationProp } from '../navigation/types';
-import { EyeIcon, EyeOffIcon } from '@gluestack-ui/themed';
+import { EyeIcon, EyeOffIcon, LockIcon, AtSymbolIcon } from '@gluestack-ui/themed';
 
 type Props = {
   navigation: NavigationProp<'Login'>;
@@ -32,6 +32,25 @@ const LoginScreen: React.FC<Props> = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Animation values
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const slideAnim = useState(new Animated.Value(50))[0];
+  
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -75,105 +94,113 @@ const LoginScreen: React.FC<Props> = () => {
             alignItems="center"
             bg="$backgroundLight950:alpha.70"
           >
-            <Box
-              w="90%"
-              maxWidth={400}
-              bg="$white"
-              borderRadius="$xl"
-              p="$6"
-              shadow="$md"
+            <Animated.View 
+              style={[
+                styles.animatedContainer,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }]
+                }
+              ]}
             >
-              <VStack space="xl" alignItems="center">
-                <Center>
-                  <Heading size="2xl" color="$primary500" fontWeight="$bold">
-                    Shemeel
-                  </Heading>
-                  <Text color="$textLight500" fontSize="$sm" mt="$1">
-                    Merchant Profile Portal
-                  </Text>
-                </Center>
-
-                <VStack space="md" w="100%">
-                  <FormControl isRequired>
-                    <FormControl.Label>
-                      <Text color="$textLight700" fontSize="$sm">
-                        Email
-                      </Text>
-                    </FormControl.Label>
-                    <Input
-                      size="md"
-                      borderWidth={1}
-                      borderColor="$borderLight300"
-                      borderRadius="$md"
-                    >
-                      <InputField
-                        placeholder="Enter your email"
-                        autoCapitalize="none"
-                        value={email}
-                        onChangeText={setEmail}
-                      />
-                    </Input>
-                  </FormControl>
-
-                  <FormControl isRequired>
-                    <FormControl.Label>
-                      <Text color="$textLight700" fontSize="$sm">
-                        Password
-                      </Text>
-                    </FormControl.Label>
-                    <Input
-                      size="md"
-                      borderWidth={1}
-                      borderColor="$borderLight300"
-                      borderRadius="$md"
-                    >
-                      <InputField
-                        placeholder="Enter your password"
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChangeText={setPassword}
-                      />
-                      <InputSlot pr="$3" onPress={toggleShowPassword}>
-                        <InputIcon as={showPassword ? EyeOffIcon : EyeIcon} color="$textLight400" />
-                      </InputSlot>
-                    </Input>
-                  </FormControl>
-
-                  {error ? (
-                    <Text color="$error600" fontSize="$sm">
-                      {error}
+              <Box
+                w="90%"
+                maxWidth={400}
+                bg="$white"
+                borderRadius="$xl"
+                p="$6"
+                shadow="$md"
+              >
+                <VStack space="xl" alignItems="center">
+                  <Center>
+                    <Heading size="2xl" color="$primary500" fontWeight="$bold">
+                      Shemeel
+                    </Heading>
+                    <Text color="$textLight500" fontSize="$sm" mt="$1">
+                      Merchant Profile Portal
                     </Text>
-                  ) : null}
+                  </Center>
 
-                  <Button
-                    size="md"
-                    mt="$2"
-                    bg="$primary500"
-                    onPress={handleLogin}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <Spinner color="$white" size="small" />
-                    ) : (
-                      <Text color="$white" fontWeight="$medium">
-                        Login
+                  <VStack space="md" w="100%">
+                    <FormControl isRequired>
+                      <FormControl.Label>
+                        <Text color="$textLight700" fontSize="$sm">
+                          Email
+                        </Text>
+                      </FormControl.Label>
+                      <Input>
+                        <InputSlot pl="$3">
+                          <InputIcon as={AtSymbolIcon} color="$primary400" />
+                        </InputSlot>
+                        <InputField
+                          pl="$2"
+                          placeholder="Enter your email"
+                          autoCapitalize="none"
+                          value={email}
+                          onChangeText={setEmail}
+                        />
+                      </Input>
+                    </FormControl>
+
+                    <FormControl isRequired>
+                      <FormControl.Label>
+                        <Text color="$textLight700" fontSize="$sm">
+                          Password
+                        </Text>
+                      </FormControl.Label>
+                      <Input>
+                        <InputSlot pl="$3">
+                          <InputIcon as={LockIcon} color="$primary400" />
+                        </InputSlot>
+                        <InputField
+                          pl="$2"
+                          placeholder="Enter your password"
+                          type={showPassword ? 'text' : 'password'}
+                          value={password}
+                          onChangeText={setPassword}
+                        />
+                        <InputSlot pr="$3" onPress={toggleShowPassword}>
+                          <InputIcon as={showPassword ? EyeOffIcon : EyeIcon} color="$textLight400" />
+                        </InputSlot>
+                      </Input>
+                    </FormControl>
+
+                    {error ? (
+                      <Text color="$error600" fontSize="$sm">
+                        {error}
                       </Text>
-                    )}
-                  </Button>
+                    ) : null}
 
-                  <Pressable mt="$2">
-                    <Text
-                      color="$primary500"
-                      fontSize="$sm"
-                      textAlign="center"
-                      fontWeight="$medium"
+                    <Button
+                      size="md"
+                      mt="$2"
+                      bg="$primary500"
+                      onPress={handleLogin}
+                      disabled={isLoading}
                     >
-                      Forgot Password?
-                    </Text>
-                  </Pressable>
+                      {isLoading ? (
+                        <Spinner color="$white" size="small" />
+                      ) : (
+                        <Text color="$white" fontWeight="$medium">
+                          Login
+                        </Text>
+                      )}
+                    </Button>
+
+                    <Pressable mt="$2">
+                      <Text
+                        color="$primary500"
+                        fontSize="$sm"
+                        textAlign="center"
+                        fontWeight="$medium"
+                      >
+                        Forgot Password?
+                      </Text>
+                    </Pressable>
+                  </VStack>
                 </VStack>
-              </VStack>
-            </Box>
+              </Box>
+            </Animated.View>
           </Box>
         </ImageBackground>
       </Box>
@@ -189,6 +216,10 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+  },
+  animatedContainer: {
+    width: '100%',
+    alignItems: 'center',
   },
 });
 

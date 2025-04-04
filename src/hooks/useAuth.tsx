@@ -30,7 +30,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch (error) {
         console.error('Error checking auth status:', error);
       } finally {
-        setIsLoading(false);
+        // Add a small delay to ensure splash screen has time to fade out properly
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 500);
       }
     };
 
@@ -55,7 +58,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           
           setUser(userData);
           setIsAuthenticated(true);
-          setIsLoading(false);
+          
+          // Add a slight delay before hiding the loading indicator
+          // This ensures the navigation changes have time to take effect
+          setTimeout(() => {
+            setIsLoading(false);
+          }, 300);
+          
           resolve(true);
         } else {
           setIsLoading(false);
@@ -66,12 +75,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
+    setIsLoading(true);
     try {
       await AsyncStorage.removeItem('authData');
       setUser(null);
       setIsAuthenticated(false);
+      
+      // Add a small delay to show loading when logging out
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 300);
     } catch (error) {
       console.error('Error logging out:', error);
+      setIsLoading(false);
     }
   };
 

@@ -16,13 +16,17 @@ export const dummyData = {
               "tid": "TID1001",
               "status": "active",
               "activationDate": "2024-01-20",
-              "totalTransactions": 98
+              "totalTransactions": 98,
+              "deviceType": "POS Terminal",
+              "location": "Main Store"
             },
             {
               "tid": "TID1002",
               "status": "inactive",
               "activationDate": "2024-02-05",
-              "totalTransactions": 44
+              "totalTransactions": 44,
+              "deviceType": "mPOS",
+              "location": "Branch Office"
             }
           ]
         },
@@ -37,7 +41,9 @@ export const dummyData = {
               "tid": "TID2001",
               "status": "active",
               "activationDate": "2024-02-15",
-              "totalTransactions": 67
+              "totalTransactions": 67,
+              "deviceType": "Smart POS",
+              "location": "Retail Store"
             }
           ]
         },

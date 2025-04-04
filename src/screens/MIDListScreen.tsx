@@ -24,6 +24,7 @@ import {
 } from '@gluestack-ui/themed';
 import { useAuth } from '../hooks/useAuth';
 import { NavigationProp } from '../navigation/types';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = {
   navigation: NavigationProp<'MIDList'>;
@@ -36,9 +37,11 @@ const MIDListScreen: React.FC<Props> = ({ navigation }) => {
 
   if (!user) {
     return (
-      <Center flex={1}>
-        <Spinner size="large" color="$primary500" />
-      </Center>
+      <SafeAreaView style={styles.safeArea}>
+        <Center flex={1}>
+          <Spinner size="large" color="$primary500" />
+        </Center>
+      </SafeAreaView>
     );
   }
 
@@ -99,42 +102,48 @@ const MIDListScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   return (
-    <Box flex={1} bg="$backgroundLight50" safeAreaTop>
-      <Box px="$4" pt="$4" pb="$2" bg="$white">
-        <Heading size="lg" color="$textDark900" mb="$4">
-          Merchant IDs
-        </Heading>
-        <Input
-          size="md"
-          borderWidth={1}
-          borderColor="$borderLight300"
-          borderRadius="$lg"
-          mb="$4"
-          bg="$backgroundLight100"
-        >
-          <InputSlot pl="$3">
-            <InputIcon as={SearchIcon} color="$textLight400" />
-          </InputSlot>
-          <InputField
-            placeholder="Search MIDs or payment channels"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </Input>
-      </Box>
+    <SafeAreaView style={styles.safeArea}>
+      <Box flex={1} bg="$backgroundLight50">
+        <Box px="$4" pt="$4" pb="$2" bg="$white">
+          <Heading size="lg" color="$textDark900" mb="$4">
+            Merchant IDs
+          </Heading>
+          <Input
+            size="md"
+            borderWidth={1}
+            borderColor="$borderLight300"
+            borderRadius="$lg"
+            mb="$4"
+            bg="$backgroundLight100"
+          >
+            <InputSlot pl="$3">
+              <InputIcon as={SearchIcon} color="$textLight400" />
+            </InputSlot>
+            <InputField
+              placeholder="Search MIDs or payment channels"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </Input>
+        </Box>
 
-      <FlatList
-        data={filteredMIDs}
-        renderItem={renderMIDItem}
-        keyExtractor={(item) => item.mid}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={renderEmptyList}
-      />
-    </Box>
+        <FlatList
+          data={filteredMIDs}
+          renderItem={renderMIDItem}
+          keyExtractor={(item) => item.mid}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={renderEmptyList}
+        />
+      </Box>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
   listContent: {
     padding: 16,
     flexGrow: 1,

@@ -14,13 +14,15 @@ import {
   Spinner,
   Badge,
   BadgeText,
-  AlertCircleIcon,
+  BadgeIcon,
   CheckCircleIcon,
+  AlertCircleIcon,
 } from '@gluestack-ui/themed';
 import { useAuth } from '../hooks/useAuth';
 import { NavigationProp, RoutePropType } from '../navigation/types';
 import { dummyData } from '../utils/dummyData';
 import { useRoute } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = {
   navigation: NavigationProp<'TIDDetails'>;
@@ -29,236 +31,247 @@ type Props = {
 const TIDDetailsScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
   const route = useRoute<RoutePropType<'TIDDetails'>>();
-  const { midId, tidId } = route.params;
+  const { midId, tidId } = route.params || {};
   
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [midData, setMidData] = useState<any>(null);
   const [tidData, setTidData] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
-      // Find MID in user data
+      // Find the MID and TID data
       const mid = user.mids.find((m: any) => m.mid === midId);
-      
       if (mid) {
         setMidData(mid);
-        
-        // Find TID in MID data
-        const tid = mid.tids.find((t: any) => t.tid === tidId);
-        
+        // Find TID using either tid or id property
+        const tid = mid.tids.find((t: any) => (t.tid === tidId || t.id === tidId));
         if (tid) {
           setTidData(tid);
           
-          // Get transactions for this TID
-          const tidTransactions = dummyData.transactions.filter(
-            (trans) => trans.mid === midId && trans.tid === tidId
-          );
-          setTransactions(tidTransactions);
+          // For demo purposes, generate some dummy transactions
+          const dummyTransactions = generateDummyTransactions(20, midId, tidId);
+          setTransactions(dummyTransactions);
         }
       }
-      
       setLoading(false);
     }
   }, [midId, tidId, user]);
 
-  const navigateToTransactions = () => {
-    navigation.navigate('TransactionList', { midId, tidId });
+  const generateDummyTransactions = (count: number, mid: string, tid: string) => {
+    const statuses = ['success', 'failed', 'pending'];
+    const types = ['purchase', 'refund', 'auth', 'void'];
+    
+    return Array.from({ length: count }, (_, i) => {
+      const status = statuses[Math.floor(Math.random() * statuses.length)];
+      const type = types[Math.floor(Math.random() * types.length)];
+      const amount = Math.floor(Math.random() * 100000) / 100;
+      
+      // Random date in the last 30 days
+      const date = new Date();
+      date.setDate(date.getDate() - Math.floor(Math.random() * 30));
+      
+      return {
+        id: `txn-${i}`,
+        mid,
+        tid,
+        status,
+        type,
+        amount,
+        currency: 'AED',
+        date,
+        cardType: ['Visa', 'MasterCard', 'Amex', 'Discover'][Math.floor(Math.random() * 4)],
+        last4: `${Math.floor(1000 + Math.random() * 9000)}`,
+      };
+    });
+  };
+
+  // Format currency
+  const formatCurrency = (amount: number, currency: string = 'AED') => {
+    return `${amount.toFixed(2)} ${currency}`;
+  };
+
+  // Format date
+  const formatDate = (date: Date | string) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  // Calculate statistics
+  const calculateStats = () => {
+    const totalTransactions = transactions.length;
+    const successfulTransactions = transactions.filter(t => t.status === 'success').length;
+    const totalVolume = transactions.reduce((sum, t) => sum + t.amount, 0);
+    const successRate = totalTransactions > 0 ? (successfulTransactions / totalTransactions) * 100 : 0;
+    
+    return {
+      totalTransactions,
+      successfulTransactions,
+      totalVolume,
+      successRate,
+    };
   };
 
   if (loading) {
     return (
-      <Center flex={1}>
-        <Spinner size="large" color="$primary500" />
-      </Center>
+      <SafeAreaView style={styles.safeArea}>
+        <Center flex={1}>
+          <Spinner size="large" color="$primary500" />
+        </Center>
+      </SafeAreaView>
     );
   }
 
-  if (!midData || !tidData) {
+  if (!tidData || !midData) {
     return (
-      <Center flex={1}>
-        <Text color="$error700">Terminal ID not found</Text>
-      </Center>
+      <SafeAreaView style={styles.safeArea}>
+        <Center flex={1}>
+          <Text color="$textLight600">TID not found</Text>
+        </Center>
+      </SafeAreaView>
     );
   }
 
-  const getStatusBadge = (status: string) => (
-    <Badge
-      action={status === 'active' ? 'success' : 'error'}
-      variant="solid"
-      size="md"
-    >
-      <BadgeText>{status.toUpperCase()}</BadgeText>
-      <Badge.Icon as={status === 'active' ? CheckCircleIcon : AlertCircleIcon} ml="$1" />
-    </Badge>
-  );
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  const formatCurrency = (amount: string) => {
-    return parseFloat(amount).toLocaleString('en-AE', {
-      style: 'currency',
-      currency: 'AED',
-    });
-  };
+  const stats = calculateStats();
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Header Section */}
-      <Box bg="$white" p="$6" borderRadius="$lg" mb="$4">
-        <VStack space="md">
-          <HStack justifyContent="space-between" alignItems="center">
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
+        <Box>
+          {/* Header */}
+          <Box px="$5" pt="$5" pb="$5" bg="$white" borderBottomWidth={1} borderBottomColor="$borderLight200">
             <VStack>
-              <Heading size="lg" color="$textDark900">
-                {tidData.tid}
-              </Heading>
-              <Text color="$textLight600" fontSize="$sm">
-                Merchant ID: {midId}
+              <HStack alignItems="center" space="sm" mb="$2">
+                <Heading size="xl">{tidData.tid || tidData.id}</Heading>
+                <Badge
+                  action={tidData.status === 'active' ? 'success' : 'error'}
+                  variant="outline"
+                  size="md"
+                >
+                  <BadgeText>
+                    {tidData.status}
+                  </BadgeText>
+                  <BadgeIcon as={tidData.status === 'active' ? CheckCircleIcon : AlertCircleIcon} ml="$1" />
+                </Badge>
+              </HStack>
+              <Text color="$textLight600" fontSize="$md">
+                MID: {midData.mid}
               </Text>
             </VStack>
-            {getStatusBadge(tidData.status)}
-          </HStack>
-          
-          <Divider my="$2" />
-          
-          <VStack space="sm">
-            <HStack justifyContent="space-between">
-              <Text color="$textLight600">Payment Channel</Text>
-              <Text color="$textDark900" fontWeight="$medium">
-                {midData.paymentChannel}
-              </Text>
-            </HStack>
-            
-            <HStack justifyContent="space-between">
-              <Text color="$textLight600">Activation Date</Text>
-              <Text color="$textDark900">
-                {formatDate(tidData.activationDate)}
-              </Text>
-            </HStack>
-            
-            <HStack justifyContent="space-between">
-              <Text color="$textLight600">Total Transactions</Text>
-              <Text color="$textDark900" fontWeight="$semibold">
-                {tidData.totalTransactions}
-              </Text>
-            </HStack>
-          </VStack>
-        </VStack>
-      </Box>
+          </Box>
 
-      {/* Transaction Stats */}
-      <Box bg="$white" p="$6" borderRadius="$lg" mb="$4">
-        <Heading size="sm" color="$textDark900" mb="$4">
-          Transaction Statistics
-        </Heading>
-        
-        <HStack justifyContent="space-between" mb="$4">
-          <Box 
-            flex={1} 
-            bg="$primary50" 
-            p="$4" 
-            borderRadius="$lg" 
-            mr="$2"
-            alignItems="center"
-          >
-            <Text fontSize="$xs" color="$textLight600">Total Volume</Text>
-            <Heading size="md" color="$primary800">
-              {formatCurrency(
-                transactions
-                  .filter(t => t.status === 'Success')
-                  .reduce((sum, t) => sum + parseFloat(t.amount), 0)
-                  .toString()
+          {/* Terminal Details */}
+          <Box px="$5" py="$5" bg="$white" mt="$2" borderBottomWidth={1} borderBottomColor="$borderLight200">
+            <Heading size="md" mb="$4">Terminal Details</Heading>
+            <VStack space="md">
+              <HStack justifyContent="space-between">
+                <Text color="$textLight600">Device Type</Text>
+                <Text color="$textDark900" fontWeight="$medium">{tidData.deviceType || 'Terminal'}</Text>
+              </HStack>
+              <HStack justifyContent="space-between">
+                <Text color="$textLight600">Activation Date</Text>
+                <Text color="$textDark900" fontWeight="$medium">{formatDate(tidData.activationDate)}</Text>
+              </HStack>
+              <HStack justifyContent="space-between">
+                <Text color="$textLight600">Location</Text>
+                <Text color="$textDark900" fontWeight="$medium">{tidData.location || 'Main Branch'}</Text>
+              </HStack>
+            </VStack>
+          </Box>
+
+          {/* Transaction Statistics */}
+          <Box px="$5" py="$5" bg="$white" mt="$2" borderBottomWidth={1} borderBottomColor="$borderLight200">
+            <Heading size="md" mb="$4">Transaction Statistics</Heading>
+            <VStack space="md">
+              <HStack justifyContent="space-between">
+                <Text color="$textLight600">Total Volume</Text>
+                <Text color="$textDark900" fontWeight="$medium">{formatCurrency(stats.totalVolume)}</Text>
+              </HStack>
+              <HStack justifyContent="space-between">
+                <Text color="$textLight600">Total Transactions</Text>
+                <Text color="$textDark900" fontWeight="$medium">{stats.totalTransactions}</Text>
+              </HStack>
+              <HStack justifyContent="space-between">
+                <Text color="$textLight600">Success Rate</Text>
+                <Text color="$textDark900" fontWeight="$medium">{stats.successRate.toFixed(1)}%</Text>
+              </HStack>
+            </VStack>
+          </Box>
+
+          {/* Recent Transactions */}
+          <Box px="$5" py="$5" bg="$white" mt="$2">
+            <HStack justifyContent="space-between" alignItems="center" mb="$4">
+              <Heading size="md">Recent Transactions</Heading>
+              <Button
+                size="sm"
+                variant="outline"
+                onPress={() => navigation.navigate('TransactionList', { midId, tidId })}
+              >
+                <ButtonText>View All</ButtonText>
+              </Button>
+            </HStack>
+            
+            <VStack space="md">
+              {transactions.slice(0, 5).map((transaction, index) => (
+                <Box key={transaction.id}>
+                  <HStack justifyContent="space-between" alignItems="flex-start">
+                    <VStack>
+                      <HStack alignItems="center" space="sm">
+                        <Text color="$textDark900" fontWeight="$medium">
+                          {formatCurrency(transaction.amount, transaction.currency)}
+                        </Text>
+                        <Badge
+                          action={transaction.status === 'success' ? 'success' : transaction.status === 'pending' ? 'warning' : 'error'}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <BadgeText>
+                            {transaction.status}
+                          </BadgeText>
+                        </Badge>
+                      </HStack>
+                      <Text color="$textLight600" fontSize="$xs">
+                        {transaction.cardType} •••• {transaction.last4}
+                      </Text>
+                      <Text color="$textLight500" fontSize="$xs">
+                        {formatDate(transaction.date)}
+                      </Text>
+                    </VStack>
+                    <Badge variant="outline" size="sm" action="muted">
+                      <BadgeText>{transaction.type}</BadgeText>
+                    </Badge>
+                  </HStack>
+                  {index < transactions.slice(0, 5).length - 1 && <Divider my="$3" />}
+                </Box>
+              ))}
+              
+              {transactions.length === 0 && (
+                <Center height={100}>
+                  <Text color="$textLight600">No transactions found</Text>
+                </Center>
               )}
-            </Heading>
+            </VStack>
           </Box>
-          
-          <Box 
-            flex={1} 
-            bg="$success50" 
-            p="$4" 
-            borderRadius="$lg" 
-            ml="$2"
-            alignItems="center"
-          >
-            <Text fontSize="$xs" color="$textLight600">Success Rate</Text>
-            <Heading size="md" color="$success700">
-              {transactions.length 
-                ? Math.round((transactions.filter(t => t.status === 'Success').length / transactions.length) * 100)
-                : 0}%
-            </Heading>
-          </Box>
-        </HStack>
-      </Box>
-
-      {/* Recent Transactions Section */}
-      <Box bg="$white" p="$6" borderRadius="$lg" mb="$4">
-        <HStack justifyContent="space-between" alignItems="center" mb="$4">
-          <Heading size="sm" color="$textDark900">
-            Recent Transactions
-          </Heading>
-          <Text color="$primary500" fontWeight="$semibold">
-            {transactions.length} Transactions
-          </Text>
-        </HStack>
-
-        {transactions.length > 0 ? (
-          <VStack space="md">
-            {transactions.slice(0, 3).map((transaction: any, index: number) => (
-              <VStack key={transaction.id}>
-                <HStack justifyContent="space-between" alignItems="center">
-                  <VStack>
-                    <Text fontSize="$md" fontWeight="$semibold" color="$textDark900">
-                      {transaction.amount} {transaction.currency}
-                    </Text>
-                    <Text fontSize="$xs" color="$textLight600">
-                      {new Date(transaction.timestamp).toLocaleDateString()}
-                    </Text>
-                  </VStack>
-                  <Badge
-                    action={transaction.status === 'Success' ? 'success' : 'error'}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <BadgeText>{transaction.status}</BadgeText>
-                  </Badge>
-                </HStack>
-                {index < transactions.slice(0, 3).length - 1 && <Divider my="$3" />}
-              </VStack>
-            ))}
-          </VStack>
-        ) : (
-          <Center py="$4">
-            <Text color="$textLight600">No transactions found</Text>
-          </Center>
-        )}
-
-        <Button
-          onPress={navigateToTransactions}
-          variant="outline"
-          mt="$4"
-          size="sm"
-          borderColor="$primary500"
-        >
-          <ButtonText color="$primary500">View All Transactions</ButtonText>
-        </Button>
-      </Box>
-    </ScrollView>
+        </Box>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#f5f5f5',
+  },
+  scrollView: {
+    flex: 1,
   },
   contentContainer: {
-    padding: 16,
+    paddingBottom: 20,
   },
 });
 

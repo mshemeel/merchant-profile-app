@@ -1,288 +1,281 @@
-import React, { useState } from 'react';
-import { StyleSheet, ScrollView, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Animated, Dimensions, Platform, View } from 'react-native';
 import {
   Box,
   VStack,
   HStack,
   Heading,
   Text,
+  ScrollView,
+  Avatar,
+  AvatarFallbackText,
   Divider,
   Button,
   ButtonText,
-  Avatar,
-  AvatarFallbackText,
-  FormControl,
-  FormControlLabel,
-  FormControlLabelText,
-  Input,
-  InputField,
-  Card,
   Pressable,
-  Modal,
-  ModalBackdrop,
-  ModalContent,
-  ModalHeader,
-  ModalCloseButton,
-  ModalBody,
-  ModalFooter,
-  Icon,
-  CloseIcon,
-  Switch,
 } from '@gluestack-ui/themed';
 import { useAuth } from '../hooks/useAuth';
 import { NavigationProp } from '../navigation/types';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = {
   navigation: NavigationProp<'Main'>;
 };
 
+// Get dimensions for responsive UI
+const { width } = Dimensions.get('window');
+const isSmallDevice = width < 375;
+
+// List of valid Ionicons names for type safety
+type IconName = 
+  | 'card-outline'
+  | 'business-outline'
+  | 'call-outline'
+  | 'time-outline'
+  | 'person-outline'
+  | 'key-outline'
+  | 'notifications-outline'
+  | 'chevron-forward'
+  | 'log-out-outline';
+
 const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { user, logout } = useAuth();
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
   
-  // Edit profile form state
-  const [formData, setFormData] = useState({
-    merchantName: user?.merchantName || '',
-    email: user?.email || '',
-    phone: '+971 50 123 4567', // Example placeholder
-    address: 'Dubai, UAE', // Example placeholder
-  });
+  // Animation values
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const slideUpAnim = useState(new Animated.Value(50))[0];
   
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideUpAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, []);
+
+  // Mock user data - would be replaced with real data
+  const profileData = {
+    name: user?.name || 'John Doe',
+    email: user?.email || 'john.doe@shemeel.com',
+    merchantId: user?.merchantId || 'MID12345678',
+    role: 'Administrator',
+    company: 'ABC Corp',
+    lastLogin: new Date().toDateString(),
+    phone: '+1 (555) 123-4567',
+  };
+
   const handleLogout = () => {
-    Alert.alert(
-      'Confirm Logout',
-      'Are you sure you want to logout?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Logout',
-          onPress: logout,
-          style: 'destructive',
-        },
-      ]
-    );
+    logout();
   };
-  
-  const handleSaveProfile = () => {
-    // In a real app, this would save to an API
-    // For now, just close the modal
-    setShowEditModal(false);
-    
-    // Show success message
-    Alert.alert('Success', 'Profile updated successfully');
-  };
-  
-  if (!user) {
-    return null;
-  }
-  
+
   return (
-    <Box flex={1} bg="$backgroundLight50" safeAreaTop>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Profile Header */}
-        <Box bg="$white" p="$4" borderRadius="$lg" mb="$4">
-          <VStack alignItems="center" space="md">
-            <Avatar size="2xl" borderRadius="$full" bg="$primary500">
-              <AvatarFallbackText>{user.merchantName}</AvatarFallbackText>
-            </Avatar>
-            <VStack alignItems="center">
-              <Heading size="lg" color="$textDark900">
-                {user.merchantName}
-              </Heading>
-              <Text color="$textLight600" fontSize="$md">
-                {user.email}
-              </Text>
-              <Button 
-                variant="outline" 
-                mt="$3"
-                onPress={() => setShowEditModal(true)}
-                size="sm"
-              >
-                <ButtonText>Edit Profile</ButtonText>
-              </Button>
-            </VStack>
-          </VStack>
-        </Box>
-        
-        {/* Account Information */}
-        <Card bg="$white" mb="$4" p="$4">
-          <Heading size="sm" mb="$3" color="$textDark900">Account Information</Heading>
-          <Divider mb="$3" />
-          
-          <VStack space="md">
-            <HStack justifyContent="space-between">
-              <Text color="$textLight600">Account Type</Text>
-              <Text color="$textDark900" fontWeight="$medium">Merchant</Text>
-            </HStack>
-            <HStack justifyContent="space-between">
-              <Text color="$textLight600">Account Status</Text>
-              <Text color="$success600" fontWeight="$medium">Active</Text>
-            </HStack>
-            <HStack justifyContent="space-between">
-              <Text color="$textLight600">Account Created</Text>
-              <Text color="$textDark900" fontWeight="$medium">March 15, 2024</Text>
-            </HStack>
-            <HStack justifyContent="space-between">
-              <Text color="$textLight600">Merchant IDs</Text>
-              <Text color="$textDark900" fontWeight="$medium">{user.mids.length}</Text>
-            </HStack>
-          </VStack>
-        </Card>
-        
-        {/* Settings */}
-        <Card bg="$white" mb="$4" p="$4">
-          <Heading size="sm" mb="$3" color="$textDark900">Settings</Heading>
-          <Divider mb="$3" />
-          
-          <VStack space="md">
-            <HStack justifyContent="space-between" alignItems="center">
-              <Text color="$textDark900">Push Notifications</Text>
-              <Switch
-                value={notificationsEnabled}
-                onToggle={() => setNotificationsEnabled(!notificationsEnabled)}
-                trackColor={{ false: '$gray300', true: '$primary300' }}
-                thumbColor={notificationsEnabled ? '$primary500' : '$gray100'}
-              />
-            </HStack>
-            <HStack justifyContent="space-between" alignItems="center">
-              <Text color="$textDark900">Biometric Login</Text>
-              <Switch
-                value={biometricEnabled}
-                onToggle={() => setBiometricEnabled(!biometricEnabled)}
-                trackColor={{ false: '$gray300', true: '$primary300' }}
-                thumbColor={biometricEnabled ? '$primary500' : '$gray100'}
-              />
-            </HStack>
-          </VStack>
-        </Card>
-        
-        {/* Support */}
-        <Card bg="$white" mb="$4" p="$4">
-          <Heading size="sm" mb="$3" color="$textDark900">Support</Heading>
-          <Divider mb="$3" />
-          
-          <VStack space="md">
-            <Pressable>
-              <Text color="$primary500" fontWeight="$medium">Contact Support</Text>
-            </Pressable>
-            <Pressable>
-              <Text color="$primary500" fontWeight="$medium">FAQ</Text>
-            </Pressable>
-            <Pressable>
-              <Text color="$primary500" fontWeight="$medium">Terms of Service</Text>
-            </Pressable>
-            <Pressable>
-              <Text color="$primary500" fontWeight="$medium">Privacy Policy</Text>
-            </Pressable>
-          </VStack>
-        </Card>
-        
-        {/* Logout Button */}
-        <Button 
-          action="secondary"
-          variant="outline"
-          onPress={handleLogout}
-          mb="$4"
+    <SafeAreaView style={styles.safeArea}>
+      <Box flex={1} bg="$backgroundLight50">
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
         >
-          <ButtonText>Logout</ButtonText>
-        </Button>
-        
-        {/* App Version */}
-        <Text textAlign="center" color="$textLight500" fontSize="$xs">
-          Version 1.0.0
-        </Text>
-      </ScrollView>
-      
-      {/* Edit Profile Modal */}
-      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)}>
-        <ModalBackdrop />
-        <ModalContent>
-          <ModalHeader>
-            <Heading size="md">Edit Profile</Heading>
-            <ModalCloseButton>
-              <Icon as={CloseIcon} color="$textDark500" />
-            </ModalCloseButton>
-          </ModalHeader>
-          <ModalBody>
-            <VStack space="md">
-              <FormControl>
-                <FormControlLabel>
-                  <FormControlLabelText>Merchant Name</FormControlLabelText>
-                </FormControlLabel>
-                <Input>
-                  <InputField
-                    value={formData.merchantName}
-                    onChangeText={(value) => setFormData({...formData, merchantName: value})}
-                  />
-                </Input>
-              </FormControl>
-              
-              <FormControl>
-                <FormControlLabel>
-                  <FormControlLabelText>Email</FormControlLabelText>
-                </FormControlLabel>
-                <Input>
-                  <InputField
-                    value={formData.email}
-                    onChangeText={(value) => setFormData({...formData, email: value})}
-                  />
-                </Input>
-              </FormControl>
-              
-              <FormControl>
-                <FormControlLabel>
-                  <FormControlLabelText>Phone</FormControlLabelText>
-                </FormControlLabel>
-                <Input>
-                  <InputField
-                    value={formData.phone}
-                    onChangeText={(value) => setFormData({...formData, phone: value})}
-                  />
-                </Input>
-              </FormControl>
-              
-              <FormControl>
-                <FormControlLabel>
-                  <FormControlLabelText>Address</FormControlLabelText>
-                </FormControlLabel>
-                <Input>
-                  <InputField
-                    value={formData.address}
-                    onChangeText={(value) => setFormData({...formData, address: value})}
-                  />
-                </Input>
-              </FormControl>
-            </VStack>
-          </ModalBody>
-          <ModalFooter>
+          {/* Header section with user info */}
+          <Box 
+            bg="$primary500" 
+            p="$6" 
+            style={{
+              borderBottomLeftRadius: 20,
+              borderBottomRightRadius: 20,
+            }}
+          >
+            <Animated.View style={{ opacity: fadeAnim }}>
+              <VStack space="md" alignItems="center">
+                <Avatar size="2xl" bg="$primary300" borderColor="$white" borderWidth={2}>
+                  <AvatarFallbackText>{profileData.name}</AvatarFallbackText>
+                </Avatar>
+                <VStack alignItems="center">
+                  <Heading color="$white" size="xl">
+                    {profileData.name}
+                  </Heading>
+                  <Text color="$white:alpha.80" size="sm">
+                    {profileData.email}
+                  </Text>
+                  <HStack space="sm" mt="$2" alignItems="center">
+                    <View style={styles.badge}>
+                      <Text color="$primary700" size="xs" fontWeight="$medium">
+                        {profileData.role}
+                      </Text>
+                    </View>
+                  </HStack>
+                </VStack>
+              </VStack>
+            </Animated.View>
+          </Box>
+
+          {/* Profile details section */}
+          <Animated.View
+            style={[
+              styles.detailsContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideUpAnim }]
+              }
+            ]}
+          >
+            <Box
+              bg="$white"
+              p="$6"
+              borderRadius="$xl"
+              borderWidth={1}
+              borderColor="$borderLight200"
+              style={styles.cardShadow}
+              mb="$4"
+            >
+              <Heading size="md" mb="$4" color="$textLight900">
+                Merchant Information
+              </Heading>
+              <VStack space="md">
+                <ProfileItem 
+                  label="Merchant ID" 
+                  value={profileData.merchantId} 
+                  icon="card-outline"
+                />
+                <Divider />
+                <ProfileItem 
+                  label="Company" 
+                  value={profileData.company} 
+                  icon="business-outline"
+                />
+                <Divider />
+                <ProfileItem 
+                  label="Phone" 
+                  value={profileData.phone} 
+                  icon="call-outline"
+                />
+                <Divider />
+                <ProfileItem 
+                  label="Last Login" 
+                  value={profileData.lastLogin} 
+                  icon="time-outline"
+                />
+              </VStack>
+            </Box>
+
+            <Box
+              bg="$white"
+              p="$6"
+              borderRadius="$xl"
+              borderWidth={1}
+              borderColor="$borderLight200"
+              style={styles.cardShadow}
+              mb="$4"
+            >
+              <Heading size="md" mb="$4" color="$textLight900">
+                Account Settings
+              </Heading>
+              <VStack space="md">
+                <Pressable py="$2" onPress={() => {}}>
+                  <HStack alignItems="center" space="md">
+                    <Ionicons name="person-outline" size={22} color="#216EAF" />
+                    <Text fontWeight="$medium" color="$textLight900">
+                      Edit Profile
+                    </Text>
+                    <Box flex={1} />
+                    <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                  </HStack>
+                </Pressable>
+                <Divider />
+                <Pressable py="$2" onPress={() => {}}>
+                  <HStack alignItems="center" space="md">
+                    <Ionicons name="key-outline" size={22} color="#216EAF" />
+                    <Text fontWeight="$medium" color="$textLight900">
+                      Change Password
+                    </Text>
+                    <Box flex={1} />
+                    <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                  </HStack>
+                </Pressable>
+                <Divider />
+                <Pressable py="$2" onPress={() => {}}>
+                  <HStack alignItems="center" space="md">
+                    <Ionicons name="notifications-outline" size={22} color="#216EAF" />
+                    <Text fontWeight="$medium" color="$textLight900">
+                      Notification Settings
+                    </Text>
+                    <Box flex={1} />
+                    <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                  </HStack>
+                </Pressable>
+              </VStack>
+            </Box>
+
             <Button
               variant="outline"
-              action="secondary"
-              mr="$3"
-              onPress={() => setShowEditModal(false)}
+              borderColor="$error400"
+              mb="$8"
+              onPress={handleLogout}
             >
-              <ButtonText>Cancel</ButtonText>
+              <Ionicons name="log-out-outline" size={18} color="#EF4444" style={{ marginRight: 8 }} />
+              <ButtonText color="$error600">Logout</ButtonText>
             </Button>
-            <Button onPress={handleSaveProfile}>
-              <ButtonText>Save</ButtonText>
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </Box>
+          </Animated.View>
+        </ScrollView>
+      </Box>
+    </SafeAreaView>
   );
 };
 
+// Helper component to display profile items
+const ProfileItem = ({ label, value, icon }: { label: string; value: string; icon: IconName }) => (
+  <HStack alignItems="center" space="md">
+    <Ionicons name={icon} size={22} color="#216EAF" />
+    <VStack>
+      <Text size="xs" color="$textLight500">
+        {label}
+      </Text>
+      <Text fontWeight="$medium" color="$textLight900">
+        {value}
+      </Text>
+    </VStack>
+  </HStack>
+);
+
 const styles = StyleSheet.create({
-  scrollContent: {
-    padding: 16,
-    flexGrow: 1,
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff',
   },
+  container: {
+    flexGrow: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  detailsContainer: {
+    padding: 16,
+    marginTop: -20,
+  },
+  badge: {
+    backgroundColor: '#E6F0F9',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+  },
+  cardShadow: {
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  }
 });
 
 export default ProfileScreen; 
